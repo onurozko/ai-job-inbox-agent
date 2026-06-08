@@ -175,8 +175,22 @@ class DashboardService:
                     )
                 )
 
+        deadlines = self._dedupe_upcoming_deadlines(deadlines)
         deadlines.sort(key=lambda item: item.deadline)
         return deadlines[:20]
+
+    @staticmethod
+    def _dedupe_upcoming_deadlines(deadlines: list[UpcomingDeadline]) -> list[UpcomingDeadline]:
+        type_priority = {"assessment": 0, "interview": 1, "deadline": 2}
+        deduped: dict[tuple[UUID, datetime], UpcomingDeadline] = {}
+        for item in deadlines:
+            key = (item.application_id, item.deadline)
+            existing = deduped.get(key)
+            if existing is None or type_priority.get(item.deadline_type, 99) < type_priority.get(
+                existing.deadline_type, 99
+            ):
+                deduped[key] = item
+        return list(deduped.values())
 
     @staticmethod
     def _find_application_for_email(

@@ -132,3 +132,54 @@ async def test_timeline_returns_events_in_chronological_order(async_session: Asy
     assert len(timeline.emails) == 3
     assert timeline.next_deadline is not None
     assert timeline.next_interview_date is not None
+
+
+@pytest.mark.asyncio
+async def test_upcoming_deadlines_deduplicates_email_and_event_sources(
+    async_session: AsyncSession,
+) -> None:
+    user = User(email="deadlines@test.com", full_name="Deadlines Test")
+    async_session.add(user)
+    await async_session.flush()
+
+    application = JobApplication(
+        user_id=user.id,
+        company_name="Datadog",
+        job_title="Software Engineer",
+        company_name_normalized="datadog",
+        job_title_normalized="software engineer",
+        status=ApplicationStatus.ASSESSMENT,
+    )
+    async_session.add(application)
+    await async_session.flush()
+
+    deadline = datetime.now(UTC) + timedelta(days=3)
+    email = EmailMessage(
+        user_id=user.id,
+        gmail_message_id="gmail-deadline-dedupe",
+        subject="Assessment deadline",
+        sender_email="jobs@datadog.com",
+        received_at=datetime.now(UTC),
+        company_name="Datadog",
+        deadline=deadline,
+    )
+    async_session.add(email)
+    await async_session.flush()
+
+    async_session.add(
+        ApplicationEvent(
+            job_application_id=application.id,
+            email_message_id=email.id,
+            event_type=EventType.ASSESSMENT,
+            title="Complete assessment",
+            occurred_at=datetime.now(UTC),
+            metadata_={"deadline": deadline.isoformat()},
+        )
+    )
+
+    service = DashboardService()
+    summary = await service.get_summary(async_session, user.id)
+
+    assert len(summary.upcoming_deadlines) == 1
+    assert summary.upcoming_deadlines[0].application_id == application.id
+    assert summary.upcoming_deadlines[0].deadline_type == "assessment"

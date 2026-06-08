@@ -84,7 +84,7 @@ export function DeadlinesSection({ dashboard }: { dashboard: DashboardSummary })
           ) : (
             dashboard.upcoming_deadlines.map((deadline) => (
               <div
-                key={`${deadline.application_id}-${deadline.deadline}`}
+                key={`${deadline.application_id}-${deadline.deadline}-${deadline.deadline_type}`}
                 className="flex items-start justify-between gap-4 rounded-lg border border-zinc-800 bg-zinc-950/40 p-4"
               >
                 <div>
