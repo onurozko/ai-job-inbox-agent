@@ -98,6 +98,8 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+Keep the backend running on port 8000 while using the demo UI — the frontend fetches data from `http://localhost:8000/api/v1` and will show a network error if uvicorn is stopped.
+
 ## Demo mode (recommended for presentations)
 
 No Gmail or OpenAI required. Full walkthrough: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
@@ -183,7 +185,7 @@ pre-commit run --all-files
 cd frontend && npm run lint && npm run build
 ```
 
-CI runs backend ruff + pytest and frontend build on push/PR (see [.github/workflows/ci.yml](.github/workflows/ci.yml)).
+CI runs backend ruff + pytest and frontend lint + build on push/PR (see [.github/workflows/ci.yml](.github/workflows/ci.yml)).
 
 Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
 
