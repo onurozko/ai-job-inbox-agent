@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Inbox, KeyRound } from "lucide-react";
 import { getApiBaseUrl } from "@/lib/api";
-import { getToken, hasToken, setToken } from "@/lib/auth";
+import { setToken } from "@/lib/auth";
+import { useHasToken } from "@/lib/use-auth";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,17 +13,9 @@ import { Label, Textarea } from "@/components/ui/input";
 
 export default function LoginPage() {
   const router = useRouter();
+  const savedToken = useHasToken();
   const [token, setTokenValue] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [savedToken, setSavedToken] = useState(false);
-
-  useEffect(() => {
-    const existing = getToken();
-    if (existing) {
-      setTokenValue(existing);
-    }
-    setSavedToken(hasToken());
-  }, []);
 
   function handleContinue() {
     const trimmed = token.trim();

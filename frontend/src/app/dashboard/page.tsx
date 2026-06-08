@@ -25,9 +25,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadData = useCallback(async (options?: { showLoading?: boolean }) => {
+    if (options?.showLoading) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const [dashboardData, analyticsData, actionsData] = await Promise.all([
         fetchDashboardSummary(),
@@ -45,8 +47,29 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    void loadData();
-  }, [loadData]);
+    let active = true;
+    void (async () => {
+      try {
+        const [dashboardData, analyticsData, actionsData] = await Promise.all([
+          fetchDashboardSummary(),
+          fetchAnalyticsSummary(),
+          fetchNextActions(),
+        ]);
+        if (!active) return;
+        setDashboard(dashboardData);
+        setAnalytics(analyticsData);
+        setNextActions(actionsData);
+      } catch (err) {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Failed to load dashboard");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <AuthGuard>
@@ -57,7 +80,9 @@ export default function DashboardPage() {
         />
 
         {loading ? <LoadingState message="Loading dashboard..." /> : null}
-        {error ? <ErrorState message={error} onRetry={() => void loadData()} /> : null}
+        {error ? (
+          <ErrorState message={error} onRetry={() => void loadData({ showLoading: true })} />
+        ) : null}
 
         {!loading && !error && dashboard && analytics && nextActions ? (
           <div className="space-y-8">

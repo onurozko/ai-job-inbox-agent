@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import {
   Briefcase,
   FileText,
@@ -11,7 +10,8 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react";
-import { clearToken, hasToken } from "@/lib/auth";
+import { clearToken } from "@/lib/auth";
+import { useHasToken } from "@/lib/use-auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -24,15 +24,10 @@ const navItems = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [authenticated, setAuthenticated] = useState(false);
-
-  useEffect(() => {
-    setAuthenticated(hasToken());
-  }, [pathname]);
+  const authenticated = useHasToken();
 
   function handleLogout() {
     clearToken();
-    setAuthenticated(false);
     router.push("/");
   }
 

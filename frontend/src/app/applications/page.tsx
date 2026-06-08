@@ -13,9 +13,11 @@ export default function ApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadApplications = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadApplications = useCallback(async (options?: { showLoading?: boolean }) => {
+    if (options?.showLoading) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const response = await fetchApplications();
       setApplications(response.items);
@@ -27,8 +29,23 @@ export default function ApplicationsPage() {
   }, []);
 
   useEffect(() => {
-    void loadApplications();
-  }, [loadApplications]);
+    let active = true;
+    void (async () => {
+      try {
+        const response = await fetchApplications();
+        if (!active) return;
+        setApplications(response.items);
+      } catch (err) {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Failed to load applications");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <AuthGuard>
@@ -39,7 +56,12 @@ export default function ApplicationsPage() {
         />
 
         {loading ? <LoadingState message="Loading applications..." /> : null}
-        {error ? <ErrorState message={error} onRetry={() => void loadApplications()} /> : null}
+        {error ? (
+          <ErrorState
+            message={error}
+            onRetry={() => void loadApplications({ showLoading: true })}
+          />
+        ) : null}
 
         {!loading && !error ? <ApplicationsPipeline applications={applications} /> : null}
       </div>

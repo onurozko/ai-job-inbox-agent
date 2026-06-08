@@ -46,9 +46,11 @@ export default function ProfilePage() {
   const roleChips = useMemo(() => parseList(targetRoles), [targetRoles]);
   const locationChips = useMemo(() => parseList(targetLocations), [targetLocations]);
 
-  const loadProfile = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadProfile = useCallback(async (options?: { showLoading?: boolean }) => {
+    if (options?.showLoading) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const data = await fetchResumeProfile();
       setProfile(data);
@@ -63,8 +65,26 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    void loadProfile();
-  }, [loadProfile]);
+    let active = true;
+    void (async () => {
+      try {
+        const data = await fetchResumeProfile();
+        if (!active) return;
+        setProfile(data);
+        setResumeText(data.resume_text);
+        setTargetRoles((data.target_roles ?? []).join(", "));
+        setTargetLocations((data.target_locations ?? []).join(", "));
+      } catch (err) {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Failed to load resume profile");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleSave() {
     setSaving(true);
@@ -94,7 +114,9 @@ export default function ProfilePage() {
         />
 
         {loading ? <LoadingState message="Loading resume profile..." /> : null}
-        {error ? <ErrorState message={error} onRetry={() => void loadProfile()} /> : null}
+        {error ? (
+          <ErrorState message={error} onRetry={() => void loadProfile({ showLoading: true })} />
+        ) : null}
 
         {!loading && !error ? (
           <Card>

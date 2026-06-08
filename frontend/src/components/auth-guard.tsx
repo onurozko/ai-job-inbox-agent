@@ -1,23 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { hasToken } from "@/lib/auth";
+import { useHasToken } from "@/lib/use-auth";
 import { LoadingState } from "@/components/state";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const hasAuth = useHasToken();
 
   useEffect(() => {
-    if (!hasToken()) {
+    if (!hasAuth) {
       router.replace("/");
-      return;
     }
-    setReady(true);
-  }, [router]);
+  }, [hasAuth, router]);
 
-  if (!ready) {
+  if (!hasAuth) {
     return <LoadingState message="Checking demo token..." />;
   }
 

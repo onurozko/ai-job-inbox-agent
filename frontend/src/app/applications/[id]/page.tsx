@@ -34,23 +34,44 @@ export default function ApplicationDetailPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const loadTimeline = useCallback(async () => {
-    if (!applicationId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchApplicationTimeline(applicationId);
-      setTimeline(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load application");
-    } finally {
-      setLoading(false);
-    }
-  }, [applicationId]);
+  const loadTimeline = useCallback(
+    async (options?: { showLoading?: boolean }) => {
+      if (!applicationId) return;
+      if (options?.showLoading) {
+        setLoading(true);
+        setError(null);
+      }
+      try {
+        const data = await fetchApplicationTimeline(applicationId);
+        setTimeline(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load application");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [applicationId],
+  );
 
   useEffect(() => {
-    void loadTimeline();
-  }, [loadTimeline]);
+    if (!applicationId) return;
+    let active = true;
+    void (async () => {
+      try {
+        const data = await fetchApplicationTimeline(applicationId);
+        if (!active) return;
+        setTimeline(data);
+      } catch (err) {
+        if (!active) return;
+        setError(err instanceof Error ? err.message : "Failed to load application");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [applicationId]);
 
   async function handleDraftReply(emailId: string) {
     setActionLoading(`draft-${emailId}`);
@@ -94,7 +115,9 @@ export default function ApplicationDetailPage() {
         </Link>
 
         {loading ? <LoadingState message="Loading application..." /> : null}
-        {error ? <ErrorState message={error} onRetry={() => void loadTimeline()} /> : null}
+        {error ? (
+          <ErrorState message={error} onRetry={() => void loadTimeline({ showLoading: true })} />
+        ) : null}
 
         {!loading && !error && timeline ? (
           <>
